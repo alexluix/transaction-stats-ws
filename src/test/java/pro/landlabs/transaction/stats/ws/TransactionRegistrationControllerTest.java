@@ -41,8 +41,37 @@ public class TransactionRegistrationControllerTest {
     public void shouldRegisterTransaction() throws Exception {
         mockMvc.perform(post("/transactions")
                 .contentType(contentType)
-                .content("{}"))
+                .content("{\n" +
+                        "\"amount\": 12.3,\n" +
+                        "\"timestamp\": 1478192204000\n" +
+                        "}"))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    public void shouldNotRegisterWithoutTimestampTransaction() throws Exception {
+        mockMvc.perform(post("/transactions")
+                .contentType(contentType)
+                .content("{\n" +
+                        "\"amount\": 12.3\n" +
+                        "}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void shouldNotRegisterEmptyJsonTransaction() throws Exception {
+        mockMvc.perform(post("/transactions")
+                .contentType(contentType)
+                .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void shouldNotRegisterInvalidJsonTransaction() throws Exception {
+        mockMvc.perform(post("/transactions")
+                .contentType(contentType)
+                .content("{\"unknownField\": 1}"))
+                .andExpect(status().isBadRequest());
     }
 
 }
