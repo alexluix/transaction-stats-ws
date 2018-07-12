@@ -1,47 +1,44 @@
 package pro.landlabs.transaction.stats.service;
 
-import com.google.common.collect.Lists;
-import org.joda.time.DateTime;
+import pro.landlabs.transaction.stats.service.aggregation.StatisticsRecord;
+import pro.landlabs.transaction.stats.service.aggregation.TimelineAggregator;
 import pro.landlabs.transaction.stats.ws.value.Statistics;
 import pro.landlabs.transaction.stats.ws.value.Transaction;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.DoubleSummaryStatistics;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class TransactionStatisticsService {
 
-    private final int seconds;
-    private final List<Transaction> transactions = Lists.newArrayList();
+    public static final int PRECISION_SCALE = 3;
 
-    public TransactionStatisticsService(int intervalSeconds) {
-        seconds = intervalSeconds;
+    private final TimelineAggregator timelineAggregator;
+
+    public TransactionStatisticsService(TimelineAggregator timelineAggregator) {
+        this.timelineAggregator = timelineAggregator;
     }
 
     public void register(Transaction transaction) {
-        transactions.add(transaction);
+        timelineAggregator.aggregate(transaction);
     }
 
     public Statistics getStatistics() {
-        DoubleSummaryStatistics stats =
-                transactions.stream().filter(transaction -> {
-                    DateTime measureStart = DateTime.now().millisOfSecond().roundFloorCopy().minusSeconds(seconds);
-                    return transaction.getTimestamp() > measureStart.getMillis();
-                }).collect(Collectors.summarizingDouble(Transaction::getAmount));
+        StatisticsRecord statisticsRecord = timelineAggregator.get();
 
-        BigDecimal sum = toDecimal(stats.getSum());
-        BigDecimal avg = toDecimal(stats.getAverage());
-        BigDecimal max = toDecimal(stats.getMax() == Double.NEGATIVE_INFINITY ? 0 : stats.getMax());
-        BigDecimal min = toDecimal(stats.getMin() == Double.POSITIVE_INFINITY ? 0 : stats.getMin());
-
-        return new Statistics(sum, avg, max, min, stats.getCount());
+        if (statisticsRecord == null) {
+            return new Statistics(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L);
+        } else {
+            BigDecimal sum = toDecimal(statisticsRecord.getSum());
+            BigDecimal avg = toDecimal(statisticsRecord.getAvg());
+            BigDecimal max = toDecimal(statisticsRecord.getMax());
+            BigDecimal min = toDecimal(statisticsRecord.getMin());
+            return new Statistics(sum, avg, max, min, statisticsRecord.getCount());
+        }
     }
 
     private BigDecimal toDecimal(Double number) {
         return new BigDecimal(number.toString())
-                .setScale(3, RoundingMode.HALF_UP)
+                .setScale(PRECISION_SCALE, RoundingMode.HALF_UP)
                 .stripTrailingZeros();
     }
 

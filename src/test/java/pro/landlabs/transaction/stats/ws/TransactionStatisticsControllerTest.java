@@ -21,9 +21,8 @@ import pro.landlabs.transaction.stats.test.TransactionMother;
 import pro.landlabs.transaction.stats.ws.value.Transaction;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,6 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 import static pro.landlabs.transaction.stats.App.STATS_PERIOD_SECONDS;
+import static pro.landlabs.transaction.stats.service.TransactionStatisticsService.PRECISION_SCALE;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = App.class)
@@ -51,8 +51,6 @@ public class TransactionStatisticsControllerTest {
     private HttpMessageConverter mappingJackson2HttpMessageConverter;
 
     private MockMvc mockMvc;
-
-    private NumberFormat amountFormat = new DecimalFormat("#.###");
 
     @Autowired
     void setConverters(HttpMessageConverter<?>[] converters) {
@@ -124,7 +122,7 @@ public class TransactionStatisticsControllerTest {
     }
 
     private double formattedDouble(double number) {
-        return new BigDecimal(amountFormat.format(number)).doubleValue();
+        return new BigDecimal(Double.valueOf(number).toString()).setScale(PRECISION_SCALE, RoundingMode.HALF_UP).doubleValue();
     }
 
     private DateTime randomSecondsBackWithinRange(DateTime currentDateTime) {

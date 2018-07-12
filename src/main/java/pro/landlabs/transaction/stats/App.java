@@ -4,6 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import pro.landlabs.transaction.stats.service.TransactionStatisticsService;
+import pro.landlabs.transaction.stats.service.aggregation.EpochSecondsProvider;
+import pro.landlabs.transaction.stats.service.aggregation.TimelineAggregator;
+
+import java.time.Instant;
 
 @SpringBootApplication
 public class App {
@@ -15,8 +19,18 @@ public class App {
     }
 
     @Bean
-    public TransactionStatisticsService statisticsService() {
-        return new TransactionStatisticsService(STATS_PERIOD_SECONDS);
+    public TransactionStatisticsService statisticsService(TimelineAggregator timelineAggregator) {
+        return new TransactionStatisticsService(timelineAggregator);
+    }
+
+    @Bean
+    public TimelineAggregator timelineAggregator(EpochSecondsProvider epochSecondsProvider) {
+        return new TimelineAggregator(STATS_PERIOD_SECONDS, epochSecondsProvider);
+    }
+
+    @Bean
+    public EpochSecondsProvider epochSecondsProvider() {
+        return () -> Instant.now().getEpochSecond();
     }
 
 }

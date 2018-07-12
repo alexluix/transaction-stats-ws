@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
+import pro.landlabs.transaction.stats.service.aggregation.TimelineAggregator;
+import pro.landlabs.transaction.stats.test.MockEpochSecondsProvider;
 import pro.landlabs.transaction.stats.test.TransactionMother;
 import pro.landlabs.transaction.stats.ws.value.Statistics;
 import pro.landlabs.transaction.stats.ws.value.Transaction;
@@ -25,7 +27,10 @@ public class TransactionStatisticsServiceTest {
 
     @Before
     public void setUp() {
-        subject = new TransactionStatisticsService(INTERVAL_SECONDS);
+        TimelineAggregator timelineAggregator =
+                new TimelineAggregator(INTERVAL_SECONDS, new MockEpochSecondsProvider());
+
+        subject = new TransactionStatisticsService(timelineAggregator);
     }
 
     @Test
