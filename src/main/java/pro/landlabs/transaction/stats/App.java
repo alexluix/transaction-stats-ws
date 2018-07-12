@@ -8,13 +8,15 @@ import pro.landlabs.transaction.stats.service.TransactionStatisticsService;
 @SpringBootApplication
 public class App {
 
+    public static final int STATS_PERIOD_SECONDS = 60;
+
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
     }
 
     @Bean
     public TransactionStatisticsService statisticsService() {
-        return new TransactionStatisticsService(60);
+        return new TransactionStatisticsService(STATS_PERIOD_SECONDS);
     }
 
 }

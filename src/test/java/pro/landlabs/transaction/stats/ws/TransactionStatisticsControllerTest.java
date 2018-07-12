@@ -1,5 +1,7 @@
 package pro.landlabs.transaction.stats.ws;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,7 +21,8 @@ import pro.landlabs.transaction.stats.test.TransactionMother;
 import pro.landlabs.transaction.stats.ws.value.Transaction;
 
 import java.nio.charset.Charset;
-import java.util.Arrays;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -27,6 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
+import static pro.landlabs.transaction.stats.App.STATS_PERIOD_SECONDS;
 import static pro.landlabs.transaction.stats.test.TransactionMother.NUMBER_PRECISION;
 
 @RunWith(SpringRunner.class)
@@ -76,26 +80,61 @@ public class TransactionStatisticsControllerTest {
     }
 
     @Test
-    public void shouldProduceStatisticsForSingleTransaction() throws Exception {
+    public void shouldProduceStatisticsForMultipleTransactionsSkippingOutOfRangeTransactions() throws Exception {
         // given
         DateTime currentDateTime = DateTime.now();
-        Transaction transaction = TransactionMother.createTransaction(currentDateTime);
 
-        mockMvc.perform(post("/transactions")
-                .contentType(contentType)
-                .content(json(transaction)))
-                .andExpect(status().isCreated());
+        List<Transaction> transactions = ImmutableList.of(
+                TransactionMother.createTransaction(randomSecondsBackWithinRange(currentDateTime)),
+                TransactionMother.createTransaction(randomSecondsBackWithinRange(currentDateTime)),
+                TransactionMother.createTransaction(randomSecondsBackWithinRange(currentDateTime))
+        );
+        List<Transaction> outOfRangeTransactions = ImmutableList.of(
+                TransactionMother.createTransaction(randomSecondsBackOtOfRange(currentDateTime)),
+                TransactionMother.createTransaction(randomSecondsBackOtOfRange(currentDateTime)),
+                TransactionMother.createTransaction(randomSecondsBackOtOfRange(currentDateTime))
+        );
+        List<Transaction> allTransactions = Lists.newArrayList();
+        allTransactions.addAll(transactions);
+        allTransactions.addAll(outOfRangeTransactions);
+        Collections.shuffle(allTransactions);
+
+        for (Transaction transaction : allTransactions) {
+            registerTransaction(transaction);
+        }
 
         // when then
+        DoubleSummaryStatistics summaryStatistics =
+                transactions.stream().collect(Collectors.summarizingDouble(Transaction::getAmount));
+
         mockMvc.perform(get("/statistics")
                 .contentType(contentType))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(contentType))
-                .andExpect(jsonPath("sum", closeTo(transaction.getAmount(), NUMBER_PRECISION)))
-                .andExpect(jsonPath("min", closeTo(transaction.getAmount(), NUMBER_PRECISION)))
-                .andExpect(jsonPath("max", closeTo(transaction.getAmount(), NUMBER_PRECISION)))
-                .andExpect(jsonPath("avg", closeTo(transaction.getAmount(), NUMBER_PRECISION)))
-                .andExpect(jsonPath("count", equalTo(1d)));
+                .andExpect(jsonPath("sum", closeTo(summaryStatistics.getSum(), NUMBER_PRECISION)))
+                .andExpect(jsonPath("min", closeTo(summaryStatistics.getMin(), NUMBER_PRECISION)))
+                .andExpect(jsonPath("max", closeTo(summaryStatistics.getMax(), NUMBER_PRECISION)))
+                .andExpect(jsonPath("avg", closeTo(summaryStatistics.getAverage(), NUMBER_PRECISION)))
+                .andExpect(jsonPath("count", equalTo((double) transactions.size())));
+    }
+
+    private DateTime randomSecondsBackWithinRange(DateTime currentDateTime) {
+        return currentDateTime.minusSeconds(randomSecondsWithinRange());
+    }
+
+    private DateTime randomSecondsBackOtOfRange(DateTime currentDateTime) {
+        return currentDateTime.minusSeconds(STATS_PERIOD_SECONDS + randomSecondsWithinRange());
+    }
+
+    private int randomSecondsWithinRange() {
+        return new Random().nextInt(STATS_PERIOD_SECONDS);
+    }
+
+    private void registerTransaction(Transaction transaction) throws Exception {
+            mockMvc.perform(post("/transactions")
+                    .contentType(contentType)
+                    .content(json(transaction)))
+                    .andExpect(status().isCreated());
     }
 
     protected String json(Object o) throws Exception {
