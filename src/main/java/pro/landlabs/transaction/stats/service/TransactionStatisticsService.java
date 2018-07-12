@@ -31,10 +31,10 @@ public class TransactionStatisticsService {
                     return transaction.getTimestamp() > measureStart.getMillis();
                 }).collect(Collectors.summarizingDouble(Transaction::getAmount));
 
-        BigDecimal max = toDecimal(stats.getMax() == Double.NEGATIVE_INFINITY ? 0 : stats.getMax());
-        BigDecimal min = toDecimal(stats.getMin() == Double.POSITIVE_INFINITY ? 0 : stats.getMin());
         BigDecimal sum = toDecimal(stats.getSum());
         BigDecimal avg = toDecimal(stats.getAverage());
+        BigDecimal max = toDecimal(stats.getMax() == Double.NEGATIVE_INFINITY ? 0 : stats.getMax());
+        BigDecimal min = toDecimal(stats.getMin() == Double.POSITIVE_INFINITY ? 0 : stats.getMin());
 
         return new Statistics(sum, avg, max, min, stats.getCount());
     }
