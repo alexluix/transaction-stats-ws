@@ -20,18 +20,21 @@ import pro.landlabs.transaction.stats.App;
 import pro.landlabs.transaction.stats.test.TransactionMother;
 import pro.landlabs.transaction.stats.ws.value.Transaction;
 
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 import static pro.landlabs.transaction.stats.App.STATS_PERIOD_SECONDS;
-import static pro.landlabs.transaction.stats.test.TransactionMother.NUMBER_PRECISION;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = App.class)
@@ -48,6 +51,8 @@ public class TransactionStatisticsControllerTest {
     private HttpMessageConverter mappingJackson2HttpMessageConverter;
 
     private MockMvc mockMvc;
+
+    private NumberFormat amountFormat = new DecimalFormat("#.###");
 
     @Autowired
     void setConverters(HttpMessageConverter<?>[] converters) {
@@ -85,7 +90,7 @@ public class TransactionStatisticsControllerTest {
         DateTime currentDateTime = DateTime.now();
 
         List<Transaction> transactions = ImmutableList.of(
-                TransactionMother.createTransaction(randomSecondsBackWithinRange(currentDateTime)),
+                TransactionMother.createTransaction(randomSecondsBackWithinRange(currentDateTime), 12.3),
                 TransactionMother.createTransaction(randomSecondsBackWithinRange(currentDateTime)),
                 TransactionMother.createTransaction(randomSecondsBackWithinRange(currentDateTime))
         );
@@ -111,11 +116,15 @@ public class TransactionStatisticsControllerTest {
                 .contentType(contentType))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(contentType))
-                .andExpect(jsonPath("sum", closeTo(summaryStatistics.getSum(), NUMBER_PRECISION)))
-                .andExpect(jsonPath("min", closeTo(summaryStatistics.getMin(), NUMBER_PRECISION)))
-                .andExpect(jsonPath("max", closeTo(summaryStatistics.getMax(), NUMBER_PRECISION)))
-                .andExpect(jsonPath("avg", closeTo(summaryStatistics.getAverage(), NUMBER_PRECISION)))
-                .andExpect(jsonPath("count", equalTo((double) transactions.size())));
+                .andExpect(jsonPath("sum", equalTo(formattedDouble(summaryStatistics.getSum()))))
+                .andExpect(jsonPath("min", equalTo(formattedDouble(summaryStatistics.getMin()))))
+                .andExpect(jsonPath("max", equalTo(formattedDouble(summaryStatistics.getMax()))))
+                .andExpect(jsonPath("avg", equalTo(formattedDouble(summaryStatistics.getAverage()))))
+                .andExpect(jsonPath("count", equalTo(transactions.size())));
+    }
+
+    private double formattedDouble(double number) {
+        return new BigDecimal(amountFormat.format(number)).doubleValue();
     }
 
     private DateTime randomSecondsBackWithinRange(DateTime currentDateTime) {
@@ -131,10 +140,10 @@ public class TransactionStatisticsControllerTest {
     }
 
     private void registerTransaction(Transaction transaction) throws Exception {
-            mockMvc.perform(post("/transactions")
-                    .contentType(contentType)
-                    .content(json(transaction)))
-                    .andExpect(status().isCreated());
+        mockMvc.perform(post("/transactions")
+                .contentType(contentType)
+                .content(json(transaction)))
+                .andExpect(status().isCreated());
     }
 
     protected String json(Object o) throws Exception {

@@ -7,8 +7,8 @@ import java.util.Random;
 
 public class TransactionMother {
 
-    public static final double NUMBER_PRECISION = 0.001;
-    public static final int AMOUNT_MAX = 1_000;
+    static final double NUMBER_PRECISION = 0.0001;
+    static final int AMOUNT_MAX = 1_000;
 
     public static Transaction createTransaction(DateTime dateTime) {
         return createTransaction(dateTime, randomAmount());
@@ -21,7 +21,7 @@ public class TransactionMother {
     static double randomAmount() {
         Random random = new Random();
         int intAmount = random.nextInt(AMOUNT_MAX);
-        int intFraction = random.nextInt(1_000);
+        int intFraction = random.nextInt(AMOUNT_MAX);
 
         return intAmount + intFraction * NUMBER_PRECISION;
     }

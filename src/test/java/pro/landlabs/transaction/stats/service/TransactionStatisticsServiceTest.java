@@ -8,14 +8,14 @@ import pro.landlabs.transaction.stats.test.TransactionMother;
 import pro.landlabs.transaction.stats.ws.value.Statistics;
 import pro.landlabs.transaction.stats.ws.value.Transaction;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalTo;
-import static pro.landlabs.transaction.stats.test.TransactionMother.NUMBER_PRECISION;
 
 public class TransactionStatisticsServiceTest {
 
@@ -34,37 +34,37 @@ public class TransactionStatisticsServiceTest {
         Statistics statistics = subject.getStatistics();
 
         // then
-        assertThat(statistics.getSum(), equalTo(0d));
-        assertThat(statistics.getAvg(), equalTo(0d));
-        assertThat(statistics.getMax(), equalTo(0d));
-        assertThat(statistics.getMin(), equalTo(0d));
-        assertThat(statistics.getCount(), equalTo(0d));
+        assertThat(statistics.getSum().compareTo(BigDecimal.ZERO), equalTo(0));
+        assertThat(statistics.getAvg().compareTo(BigDecimal.ZERO), equalTo(0));
+        assertThat(statistics.getMax().compareTo(BigDecimal.ZERO), equalTo(0));
+        assertThat(statistics.getMin().compareTo(BigDecimal.ZERO), equalTo(0));
+        assertThat(statistics.getCount(), equalTo(0L));
     }
 
     @Test
-    public void shouldCalcStatsForASingleTransaction() {
+    public void shouldCalcStatsForSingleTransaction() {
         // given
-        Transaction transaction = TransactionMother.createTransaction(DateTime.now(), 50.001);
+        Transaction transaction = TransactionMother.createTransaction(DateTime.now(), 12.3);
         subject.register(transaction);
 
         // when
         Statistics statistics = subject.getStatistics();
 
         // then
-        assertThat(statistics.getSum(), closeTo(transaction.getAmount(), NUMBER_PRECISION));
-        assertThat(statistics.getAvg(), closeTo(transaction.getAmount(), NUMBER_PRECISION));
-        assertThat(statistics.getMax(), closeTo(transaction.getAmount(), NUMBER_PRECISION));
-        assertThat(statistics.getMin(), closeTo(transaction.getAmount(), NUMBER_PRECISION));
-        assertThat(statistics.getCount(), equalTo(1d));
+        assertThat(statistics.getSum().compareTo(toDecimal(transaction.getAmount())), equalTo(0));
+        assertThat(statistics.getAvg().compareTo(toDecimal(transaction.getAmount())), equalTo(0));
+        assertThat(statistics.getMax().compareTo(toDecimal(transaction.getAmount())), equalTo(0));
+        assertThat(statistics.getMin().compareTo(toDecimal(transaction.getAmount())), equalTo(0));
+        assertThat(statistics.getCount(), equalTo(1L));
     }
 
     @Test
     public void shouldCalcStatsForMultipleTransactions() {
         // given
-        double min = 50;
-        double avg = 100;
-        double max = 150;
-        double sum = min + avg + max;
+        int min = 50;
+        int avg = 100;
+        int max = 150;
+        int sum = min + avg + max;
         List<Transaction> transactions = ImmutableList.of(
                 TransactionMother.createTransaction(DateTime.now(), min),
                 TransactionMother.createTransaction(DateTime.now(), avg),
@@ -76,11 +76,11 @@ public class TransactionStatisticsServiceTest {
         Statistics statistics = subject.getStatistics();
 
         // then
-        assertThat(statistics.getSum(), closeTo(sum, NUMBER_PRECISION));
-        assertThat(statistics.getAvg(), closeTo(avg, NUMBER_PRECISION));
-        assertThat(statistics.getMax(), closeTo(max, NUMBER_PRECISION));
-        assertThat(statistics.getMin(), closeTo(min, NUMBER_PRECISION));
-        assertThat(statistics.getCount(), equalTo((double) transactions.size()));
+        assertThat(statistics.getSum().compareTo(toDecimal(sum)), equalTo(0));
+        assertThat(statistics.getAvg().compareTo(toDecimal(avg)), equalTo(0));
+        assertThat(statistics.getMax().compareTo(toDecimal(max)), equalTo(0));
+        assertThat(statistics.getMin().compareTo(toDecimal(min)), equalTo(0));
+        assertThat(statistics.getCount(), equalTo((long) transactions.size()));
     }
 
     @Test
@@ -100,11 +100,11 @@ public class TransactionStatisticsServiceTest {
         DoubleSummaryStatistics summaryStatistics =
                 transactions.stream().collect(Collectors.summarizingDouble(Transaction::getAmount));
 
-        assertThat(statistics.getSum(), closeTo(summaryStatistics.getSum(), NUMBER_PRECISION));
-        assertThat(statistics.getAvg(), closeTo(summaryStatistics.getAverage(), NUMBER_PRECISION));
-        assertThat(statistics.getMax(), closeTo(summaryStatistics.getMax(), NUMBER_PRECISION));
-        assertThat(statistics.getMin(), closeTo(summaryStatistics.getMin(), NUMBER_PRECISION));
-        assertThat(statistics.getCount(), equalTo((double) transactions.size()));
+        assertThat(statistics.getSum().compareTo(toDecimal(summaryStatistics.getSum())), equalTo(0));
+        assertThat(statistics.getAvg().compareTo(toDecimal(summaryStatistics.getAverage())), equalTo(0));
+        assertThat(statistics.getMax().compareTo(toDecimal(summaryStatistics.getMax())), equalTo(0));
+        assertThat(statistics.getMin().compareTo(toDecimal(summaryStatistics.getMin())), equalTo(0));
+        assertThat(statistics.getCount(), equalTo((long) transactions.size()));
     }
 
     @Test
@@ -122,7 +122,15 @@ public class TransactionStatisticsServiceTest {
         Statistics statistics = subject.getStatistics();
 
         // then
-        assertThat(statistics.getCount(), equalTo(1d));
+        assertThat(statistics.getCount(), equalTo(1L));
+    }
+
+    private BigDecimal toDecimal(Double number) {
+        return new BigDecimal(number.toString()).setScale(3, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal toDecimal(Integer number) {
+        return new BigDecimal(number);
     }
 
 }

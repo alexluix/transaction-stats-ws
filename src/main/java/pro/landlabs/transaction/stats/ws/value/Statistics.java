@@ -1,13 +1,15 @@
 package pro.landlabs.transaction.stats.ws.value;
 
-public class Statistics {
-    private final double sum;
-    private final double avg;
-    private final double max;
-    private final double min;
-    private final double count;
+import java.math.BigDecimal;
 
-    public Statistics(double sum, double avg, double max, double min, double count) {
+public class Statistics {
+    private final BigDecimal sum;
+    private final BigDecimal avg;
+    private final BigDecimal max;
+    private final BigDecimal min;
+    private final long count;
+
+    public Statistics(BigDecimal sum, BigDecimal avg, BigDecimal max, BigDecimal min, long count) {
         this.sum = sum;
         this.avg = avg;
         this.max = max;
@@ -15,23 +17,24 @@ public class Statistics {
         this.count = count;
     }
 
-    public double getSum() {
+    public BigDecimal getSum() {
         return sum;
     }
 
-    public double getAvg() {
+    public BigDecimal getAvg() {
         return avg;
     }
 
-    public double getMax() {
+    public BigDecimal getMax() {
         return max;
     }
 
-    public double getMin() {
+    public BigDecimal getMin() {
         return min;
     }
 
-    public double getCount() {
+    public long getCount() {
         return count;
     }
+
 }
