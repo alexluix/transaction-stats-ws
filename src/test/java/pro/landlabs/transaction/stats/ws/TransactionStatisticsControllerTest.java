@@ -8,10 +8,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.http.MockHttpOutputMessage;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,8 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -63,13 +64,12 @@ public class TransactionStatisticsControllerTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         this.mockMvc = webAppContextSetup(webApplicationContext).build();
-
-        verifyEmptyStatisticsOutput();
     }
 
-    private void verifyEmptyStatisticsOutput() throws Exception {
+    @Test
+    public void verifyEmptyStatisticsOutput() throws Exception {
         mockMvc.perform(get("/statistics")
                 .contentType(contentType))
                 .andExpect(status().isOk())
@@ -83,6 +83,7 @@ public class TransactionStatisticsControllerTest {
     }
 
     @Test
+    @DirtiesContext
     public void shouldProduceStatisticsForMultipleTransactionsSkippingOutOfRangeTransactions() throws Exception {
         // given
         DateTime currentDateTime = DateTime.now();
@@ -122,7 +123,9 @@ public class TransactionStatisticsControllerTest {
     }
 
     private double formattedDouble(double number) {
-        return new BigDecimal(Double.valueOf(number).toString()).setScale(PRECISION_SCALE, RoundingMode.HALF_UP).doubleValue();
+        return new BigDecimal(Double.valueOf(number).toString())
+                .setScale(PRECISION_SCALE, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     private DateTime randomSecondsBackWithinRange(DateTime currentDateTime) {
@@ -138,10 +141,14 @@ public class TransactionStatisticsControllerTest {
     }
 
     private void registerTransaction(Transaction transaction) throws Exception {
-        mockMvc.perform(post("/transactions")
+        int status = mockMvc.perform(post("/transactions")
                 .contentType(contentType)
                 .content(json(transaction)))
-                .andExpect(status().isCreated());
+                .andReturn().getResponse().getStatus();
+
+        assertThat(status, anyOf(
+                equalTo(HttpStatus.CREATED.value()), equalTo(HttpStatus.NO_CONTENT.value())
+        ));
     }
 
     protected String json(Object o) throws Exception {

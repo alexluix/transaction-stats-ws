@@ -18,8 +18,8 @@ public class TransactionStatisticsService {
         this.timelineAggregator = timelineAggregator;
     }
 
-    public void register(Transaction transaction) {
-        timelineAggregator.aggregate(transaction);
+    public boolean register(Transaction transaction) {
+        return timelineAggregator.aggregate(transaction);
     }
 
     public Statistics getStatistics() {

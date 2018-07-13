@@ -12,9 +12,7 @@ import pro.landlabs.transaction.stats.ws.value.Transaction;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.DoubleSummaryStatistics;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -85,30 +83,6 @@ public class TransactionStatisticsServiceTest {
         assertThat(statistics.getAvg().compareTo(toDecimal(avg)), equalTo(0));
         assertThat(statistics.getMax().compareTo(toDecimal(max)), equalTo(0));
         assertThat(statistics.getMin().compareTo(toDecimal(min)), equalTo(0));
-        assertThat(statistics.getCount(), equalTo((long) transactions.size()));
-    }
-
-    @Test
-    public void shouldCalcStatsForMultipleRandomTransactions() {
-        // given
-        List<Transaction> transactions = ImmutableList.of(
-                TransactionMother.createTransaction(DateTime.now()),
-                TransactionMother.createTransaction(DateTime.now()),
-                TransactionMother.createTransaction(DateTime.now())
-        );
-        transactions.forEach(transaction -> subject.register(transaction));
-
-        // when
-        Statistics statistics = subject.getStatistics();
-
-        // then
-        DoubleSummaryStatistics summaryStatistics =
-                transactions.stream().collect(Collectors.summarizingDouble(Transaction::getAmount));
-
-        assertThat(statistics.getSum().compareTo(toDecimal(summaryStatistics.getSum())), equalTo(0));
-        assertThat(statistics.getAvg().compareTo(toDecimal(summaryStatistics.getAverage())), equalTo(0));
-        assertThat(statistics.getMax().compareTo(toDecimal(summaryStatistics.getMax())), equalTo(0));
-        assertThat(statistics.getMin().compareTo(toDecimal(summaryStatistics.getMin())), equalTo(0));
         assertThat(statistics.getCount(), equalTo((long) transactions.size()));
     }
 

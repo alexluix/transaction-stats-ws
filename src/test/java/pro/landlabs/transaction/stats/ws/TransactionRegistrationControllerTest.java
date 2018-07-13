@@ -1,11 +1,13 @@
 package pro.landlabs.transaction.stats.ws;
 
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,12 +40,26 @@ public class TransactionRegistrationControllerTest {
     }
 
     @Test
-    public void shouldRegisterTransaction() throws Exception {
+    public void shouldNotRegisterOutOfScopeTransaction() throws Exception {
         mockMvc.perform(post("/transactions")
                 .contentType(contentType)
                 .content("{\n" +
                         "\"amount\": 12.3,\n" +
                         "\"timestamp\": 1478192204000\n" +
+                        "}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DirtiesContext
+    public void shouldRegisterInScopeTransaction() throws Exception {
+        long millis = DateTime.now().getMillis();
+
+        mockMvc.perform(post("/transactions")
+                .contentType(contentType)
+                .content("{\n" +
+                        "\"amount\": 12.3,\n" +
+                        "\"timestamp\": " + millis + "\n" +
                         "}"))
                 .andExpect(status().isCreated());
     }

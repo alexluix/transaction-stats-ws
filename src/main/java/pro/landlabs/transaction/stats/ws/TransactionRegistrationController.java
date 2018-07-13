@@ -19,9 +19,11 @@ public class TransactionRegistrationController {
 
     @PostMapping
     public ResponseEntity<Object> register(@RequestBody Transaction transaction) {
-        statisticsService.register(transaction);
+        boolean registered = statisticsService.register(transaction);
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        HttpStatus status = registered ? HttpStatus.CREATED : HttpStatus.NO_CONTENT;
+
+        return ResponseEntity.status(status).build();
     }
 
 }
