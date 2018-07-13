@@ -67,11 +67,7 @@ GET /statistics
 
 ```
 curl "http://localhost:8080/statistics" \
-     -H 'Content-Type: application/json' \
-     -d $'{
-  "amount": 12.3,
-  "timestamp": 1478192204000
-}'
+     -H 'Content-Type: application/json'
 ```
 #### Response
 ```
