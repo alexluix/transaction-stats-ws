@@ -11,6 +11,16 @@ Transaction statistics web service.
 -   checking transaction amount statistics: min, max, avg, sum, count
 -   statistics period: 60 seconds, configurable
 
+## Non-functional requirements
+
+-   reading endpoint should execute in constant time and memory – O(1)
+
+## API & Limitations
+
+-   REST API
+-   no authentication
+-   in-memory solution – data is forgotten on server restart
+
 ## Technologies
 
 -   Java 8
