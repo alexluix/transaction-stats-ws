@@ -33,9 +33,13 @@ public class TimelineAggregator {
         long currentEpochSecond = currentEpochSecond();
 
         readWriteLock.readLock().lock();
-        int shift = (int) (currentEpochSecond - startedEpochSecond - bufferOffset);
-        StatisticsRecord value = ringBuffer.get(shift);
-        readWriteLock.readLock().unlock();
+        StatisticsRecord value;
+        try {
+            int shift = (int) (currentEpochSecond - startedEpochSecond - bufferOffset);
+            value = ringBuffer.get(shift);
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
 
         return value != null && value.getId() == currentEpochSecond - lastSeconds ? value : null;
     }
@@ -50,21 +54,22 @@ public class TimelineAggregator {
         }
 
         readWriteLock.writeLock().lock();
+        try {
+            int shift = (int) (currentEpochSecond - startedEpochSecond - bufferOffset);
+            if (shift > 0) {
+                bufferOffset += shift;
+                ringBuffer.shift(shift);
+            }
 
-        int shift = (int) (currentEpochSecond - startedEpochSecond - bufferOffset);
-        if (shift > 0) {
-            bufferOffset += shift;
-            ringBuffer.shift(shift);
+            for (int i = 0; i <= lastSeconds - transactionSecond; i++) {
+                StatisticsRecord record = ringBuffer.get(i);
+
+                long trnEpochSecond = startedEpochSecond + bufferOffset - lastSeconds + i;
+                ringBuffer.set(i, createOrUpdate(record, trnEpochSecond, transaction.getAmount()));
+            }
+        } finally {
+            readWriteLock.writeLock().unlock();
         }
-
-        for (int i = 0; i <= lastSeconds - transactionSecond; i++) {
-            StatisticsRecord record = ringBuffer.get(i);
-
-            long trnEpochSecond = startedEpochSecond + bufferOffset - lastSeconds + i;
-            ringBuffer.set(i, createOrUpdate(record, trnEpochSecond, transaction.getAmount()));
-        }
-
-        readWriteLock.writeLock().unlock();
 
         return true;
     }
