@@ -36,8 +36,8 @@ public class TransactionStatisticsService {
         }
     }
 
-    private BigDecimal toDecimal(Double number) {
-        return new BigDecimal(number.toString())
+    private BigDecimal toDecimal(double number) {
+        return new BigDecimal(Double.valueOf(number).toString())
                 .setScale(PRECISION_SCALE, RoundingMode.HALF_UP)
                 .stripTrailingZeros();
     }

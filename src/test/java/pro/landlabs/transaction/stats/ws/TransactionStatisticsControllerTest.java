@@ -35,12 +35,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 import static pro.landlabs.transaction.stats.App.STATS_PERIOD_SECONDS;
-import static pro.landlabs.transaction.stats.service.TransactionStatisticsService.PRECISION_SCALE;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = App.class)
 @WebAppConfiguration
 public class TransactionStatisticsControllerTest {
+
+    public static final double DOUBLE_PRECISION = 0.0001;
 
     private MediaType contentType = new MediaType(MediaType.APPLICATION_JSON.getType(),
             MediaType.APPLICATION_JSON.getSubtype(),
@@ -115,17 +116,17 @@ public class TransactionStatisticsControllerTest {
                 .contentType(contentType))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(contentType))
-                .andExpect(jsonPath("sum", equalTo(formattedDouble(summaryStatistics.getSum()))))
-                .andExpect(jsonPath("min", equalTo(formattedDouble(summaryStatistics.getMin()))))
-                .andExpect(jsonPath("max", equalTo(formattedDouble(summaryStatistics.getMax()))))
-                .andExpect(jsonPath("avg", equalTo(formattedDouble(summaryStatistics.getAverage()))))
+                .andExpect(jsonPath("sum", closeTo(round(summaryStatistics.getSum()), DOUBLE_PRECISION)))
+                .andExpect(jsonPath("min", closeTo(round(summaryStatistics.getMin()), DOUBLE_PRECISION)))
+                .andExpect(jsonPath("max", closeTo(round(summaryStatistics.getMax()), DOUBLE_PRECISION)))
+                .andExpect(jsonPath("avg", closeTo(round(summaryStatistics.getAverage()), DOUBLE_PRECISION)))
                 .andExpect(jsonPath("count", equalTo(transactions.size())));
     }
 
-    private double formattedDouble(double number) {
-        return new BigDecimal(Double.valueOf(number).toString())
-                .setScale(PRECISION_SCALE, RoundingMode.HALF_UP)
-                .doubleValue();
+    private static double round(double value) {
+        BigDecimal bd = new BigDecimal(Double.toString(value));
+        bd = bd.setScale(3, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 
     private DateTime randomSecondsBackWithinRange(DateTime currentDateTime) {
@@ -133,7 +134,7 @@ public class TransactionStatisticsControllerTest {
     }
 
     private DateTime randomSecondsBackOtOfRange(DateTime currentDateTime) {
-        return currentDateTime.minusSeconds(STATS_PERIOD_SECONDS + randomSecondsWithinRange());
+        return currentDateTime.minusSeconds(STATS_PERIOD_SECONDS + 1 + randomSecondsWithinRange());
     }
 
     private int randomSecondsWithinRange() {
